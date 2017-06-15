@@ -39,13 +39,6 @@ class Console(object):
         self.show_args['kwh'] = kwh
         self.show_args['bill'] = bill
 
-    def async_task(func):
-        def wrapper(self):
-            # time.sleep(1)
-            thread = threading.Thread(target=func, args=(self, ))
-            thread.start()
-        return wrapper
-
     def adjust_temp(self, input_1):
         """
         从机设置温度
@@ -133,6 +126,13 @@ class Console(object):
               '用电量为：' + str(self.show_args['kwh']) + '\n' +
               '电费为：' + str(self.show_args['bill']) + '\n')
         print('如果您像改变风速或温度的话，[w]代表风速,2--HIGH; 1--MEDIUM，输入[w 1]代表中速,[t 20]代表改为20度：')
+
+    def async_task(func):
+        def wrapper(self):
+            # time.sleep(1)
+            thread = threading.Thread(target=func, args=(self,))
+            thread.start()
+        return wrapper
 
     @async_task
     def raw_input(self):
