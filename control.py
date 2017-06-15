@@ -1,21 +1,5 @@
 import time
 import threading
-import json
-
-def receiver_thread(rec_socket, queue):
-    ip_port = rec_socket.getpeername()
-    received = ""
-    while True:
-        try:
-            received = received + rec_socket.recv(1024).decode("UTF-8")
-        except:
-            break
-        index = received.find("}")
-        while index != -1:
-            message = received[0:index + 1]
-            queue.put((ip_port, message))
-            received = received[index + 1:-1]
-            index = received.find("}")
 
 
 class Console(object):
@@ -62,16 +46,12 @@ class Console(object):
             thread.start()
         return wrapper
 
-    # @async_task
     def adjust_temp(self, input_1):
         """
         从机设置温度
         :return:
         """
-        # print('请输入您的设置温度：')
-        # while True:
         try:
-            # goal = int(input())
             goal = int(input_1)
             if isinstance(goal, int):
                 if self.show_args['pattern'] == 'COLD':
@@ -80,24 +60,19 @@ class Console(object):
                                     goal >= self.show_args['recurrent_temp']:
                         print('根据中央空调的工作模式，您选择的温度超出界限， 请重新设置温度....\n')
                     else:
-                        # return self.show_args['goal_temp']
                         self.show_args['goal_temp'] = goal
                         self.show_args['temp_state'].append(time.time())
-                        # print('请输入您的设置温度：')
                 elif self.show_args['pattern'] == 'HOT':
                     if goal < 25 or \
                                     goal > 30 or \
                                     goal <= self.show_args['recurrent_temp']:
                         print('根据中央空调的工作模式，您选择的温度超出界限， 请重新设置温度....\n')
                     else:
-                        # return self.show_args['goal_temp']
                         self.show_args['goal_temp'] = goal
                         self.show_args['temp_state'].append(time.time())
-                        # print('请输入您的设置温度：')
         except ValueError:
             print('请输入正确的数字：')
 
-    # @async_task
     def adjust_wind(self, input_1):
         # print('请选择风速2--HIGH; 1--MEDIUM; 0--LOW: ')
         dict_1 = {'2': 'HIGH', '1': 'MEDIUM', '0': 'LOW'}
@@ -112,7 +87,6 @@ class Console(object):
         在无风和有风情况下的温度曲线
         :return: 当前温度
         """
-        # sub_temp = recurrent_temp - goal_temp
         threading.Timer(self.show_args['fresh_rate'], self.room_temp).start()
         if isinstance(self.show_args['fresh_rate'], int):
             if self.show_args['pattern'] == 'COLD':
@@ -126,14 +100,9 @@ class Console(object):
 
                     if self.show_args['recurrent_temp'] <= self.show_args['goal_temp']:  # 超出设置温度时
                         self.show_args['recurrent_temp'] = self.show_args['goal_temp']
-                        # self.show_args['still_temp'] = self.show_args['goal_temp']
                         self.show_args['state'] = 0
-                        # return self.show_args['recurrent_temp']
                 elif self.show_args['state'] in [0, -1]:
-                    # while self.show_args['fresh_rate'] % 0.1 == 0 and self.show_args['recurrent_temp'] <= 35:
                     self.show_args['recurrent_temp'] += self.show_args['fresh_rate'] * 0.1
-                    # if (self.show_args['recurrent_temp'] - self.show_args['goal_temp']) > 1:
-                    #     self.show_args['state'] = 1
                     if self.show_args['recurrent_temp'] >= 35:  # 超出环境温度
                         self.show_args['recurrent_temp'] = 35
             elif self.show_args['pattern'] == 'HOT':
@@ -147,20 +116,13 @@ class Console(object):
                     if self.show_args['recurrent_temp'] >= self.show_args['goal_temp']:  # 超出设置温度时
                         self.show_args['recurrent_temp'] = self.show_args['goal_temp']
                         self.show_args['state'] = 0
-                        # return self.show_args['recurrent_temp']
                 elif self.show_args['state'] in [0, -1]:
-                    # while self.show_args['fresh_rate'] % 0.1 == 0 and self.show_args['recurrent_temp'] >= 15:
                     self.show_args['recurrent_temp'] -= self.show_args['fresh_rate'] * 0.1
-                    # if (self.show_args['goal_temp'] - self.show_args['recurrent_temp']) > 1:
-                    #     # self.show_args['state'] = 1
-                    #     pass
                     if self.show_args['recurrent_temp'] <= 15:  # 超出环境温度
                         self.show_args['recurrent_temp'] = 15
         else:
             print('fresh_rate不是int类型……')
-            # return self.show_args['recurrent_temp']
 
-    # @async_task
     def show(self):
         threading.Timer(self.show_args['fresh_rate'], self.show).start()
         print('目标温度是：' + str(self.show_args['goal_temp']) + '\n' +
@@ -183,16 +145,11 @@ class Console(object):
 
 
 class Queue(object):
+    """
+    消息队列
+    """
     def __init__(self):
         self.queue = list()
 
     def put(self, message):
         self.queue.append(message)
-
-    def async_task(func):
-        def wrapper(self):
-            # time.sleep(1)
-            thread = threading.Thread(target=func, args=(self, ))
-            thread.start()
-        return wrapper
-

@@ -6,39 +6,40 @@ import json
 # 创建一个socket:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # 建立连接:
-server_address = '172.20.10.7'
+server_address = '192.168.43.74'
 s.connect((server_address, 6666))
 console = Console()
 message_queue = Queue()
-token = -1
 
 
 def receive():
+    token = 0
     while True:
         message = json.loads(s.recv(1024).decode('utf-8'))
-        print(message)
-        # message_queue.put(message)
-
         if message['type'] == 'freshrate':
+            token += 1
             freshperiod = message['freshperiod']
             print(freshperiod)
             # TODO：警告一下频率如果不能被强制转换成int类型
             console.show_args['fresh_rate'] = int(freshperiod)  # 改变刷新频率
-            send_auth()
+            if token == 1:
+                send_auth()
+            else:
+                pass
 
         elif message['type'] == 'mode':
-            workingmode = message['workingmode']
+            workingmode = message['workingmode'].upper()
             defaulttemp = message['defaulttemp']
             print(workingmode, defaulttemp)
             console.show_args['pattern'] = workingmode  # 改变工作模式
             if workingmode == 'COLD':  # 改变初始温度
-                console.show_args['recurrent_temp'] = 27  # 如果是冬天的话，应该是15度
+                console.show_args['recurrent_temp'] = 30  # 如果是冬天的话，应该是15度
             elif workingmode == 'HOT':
                 console.show_args['recurrent_temp'] = 15
 
         elif message['type'] == 'wind':
             print('接收到送风指令： \n')
-            wind_v = message['velocity']
+            wind_v = message['velocity'].upper()
             if wind_v == 'NONE':
                 console.show_args['state'] = -1
             elif wind_v in ['HIGH', 'MEDIUM', 'LOW']:
@@ -77,7 +78,7 @@ def send_recurrent_temp():
     :return:
     """
     threading.Timer(console.show_args['fresh_rate'], send_recurrent_temp).start()
-    payload = {"type": "temp", "temp": console.show_args['recurrent_temp']}
+    payload = {"type": "temp", "temp": int(console.show_args['recurrent_temp'])}
     message_queue.put(payload)
 
 
@@ -90,10 +91,12 @@ def async_no_sleep(func):
 
 @async_no_sleep
 def send_message():
+    """
+    保持运行|监视发送队列，有元素即发送
+    :return:
+    """
     while True:
         while len(message_queue.queue) != 0:
-            # s.send(json.dumps(message_queue.queue[0]))
-            print(message_queue.queue)
             my_writer_obj = s.makefile(mode='w')
             my_writer_obj.write(json.dumps(message_queue.queue[0]))
             my_writer_obj.flush()
@@ -182,18 +185,17 @@ def send_stop_wind():
     print('发送停止送风请求')
 
 
-def send_temp(recurrent_temp=27):
+def send_temp(recurrent_temp=30):  # 如何是冬天15， 夏天30
     """
     只用一次不用管它
     :param recurrent_temp:
     :return:
     """
     payload = {"type": "temp", "temp": recurrent_temp}
-    # s.post(url=server_addr, data=payload)
     my_writer_obj = s.makefile(mode='w')
     my_writer_obj.write(json.dumps(payload))
     my_writer_obj.flush()
-    # s.send((payload))
+
 if __name__ == '__main__':
     send_message()
     send_temp()
